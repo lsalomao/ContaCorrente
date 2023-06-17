@@ -8,13 +8,13 @@ using Microsoft.Extensions.Caching.Memory;
 
 namespace Led.ContaCorrente.Test
 {
-    public class AccountServiceTests
+    public class AccountServiceTest
     {
         private readonly IAccountService _accountService;
         private readonly Mock<IAccountRepository> _accountRepositoryMock = new();
         private readonly Mock<IMovementRepository> _movementRepositoryMock = new();
 
-        public AccountServiceTests()
+        public AccountServiceTest()
         {
             _accountService = new AccountService(_accountRepositoryMock.Object, _movementRepositoryMock.Object);
         }
