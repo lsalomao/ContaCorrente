@@ -12,7 +12,7 @@ namespace Led.ContaCorrente.Api.Controllers
     [Route("/v{version:apiVersion}/accounts")]
     public class AccountController : BaseController
     {
-        private readonly IAccountService accountService;        
+        private readonly IAccountService accountService;
 
         public AccountController(IAccountService accountService)
         {
@@ -35,21 +35,21 @@ namespace Led.ContaCorrente.Api.Controllers
         }
 
         [HttpPost("{accountId}/deposit")]
-        public async Task<IActionResult> Deposit([FromRoute] string accountId, [FromBody] MovementRequest request)
+        public async Task<IActionResult> Deposit([FromRoute] string accountId, [FromBody, CustomizeValidator(RuleSet = ValidationRules.Deposito)] MovementRequest request)
         {
             var response = await accountService.Deposit(accountId, request.Amount);
             return response.PossuiErro ? HandleError(response) : Ok(response.Dados);
         }
 
         [HttpPost("{accountId}/withdraw")]
-        public IActionResult Withdraw(string accountId, [FromBody] MovementRequest request)
+        public IActionResult Withdraw(string accountId, [FromBody, CustomizeValidator(RuleSet = ValidationRules.Saque)] MovementRequest request)
         {
             var response = accountService.Withdraw(accountId, request.Amount);
             return response.PossuiErro ? HandleError(response) : Ok(response.Dados);
         }
 
         [HttpPost("{sourceAccountId}/transfer/{targetAccountId}")]
-        public async Task<IActionResult> Transfer(string sourceAccountId, string targetAccountId, [FromBody] MovementRequest request)
+        public async Task<IActionResult> Transfer(string sourceAccountId, string targetAccountId, [FromBody, CustomizeValidator(RuleSet = ValidationRules.Transfencia)] MovementRequest request)
         {
             var response = await accountService.Transfer(sourceAccountId, targetAccountId, request.Amount);
             return response.PossuiErro ? HandleError(response) : Ok(response.Dados);

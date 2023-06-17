@@ -1,13 +1,7 @@
 ﻿using FluentValidation.TestHelper;
 using Led.ContaCorrente.Domain.Enums.Validadores;
-using Led.ContaCorrente.Domain.Models;
 using Led.ContaCorrente.Domain.Requests;
 using Led.ContaCorrente.DomainService.Validadores;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Led.ContaCorrente.Test.Validadores
 {
@@ -28,7 +22,7 @@ namespace Led.ContaCorrente.Test.Validadores
         }
 
         [Fact]
-        private void ValidarNomeNulo()
+        public void ValidarNomeNulo()
         {
             //Arrange
             string name = "";
@@ -45,7 +39,7 @@ namespace Led.ContaCorrente.Test.Validadores
         }
 
         [Fact]
-        private void ValidarLimiteForaLimitePadrao()
+        public void ValidarLimiteForaLimitePadrao()
         {
             //Arrange
             string name = "João Messias";

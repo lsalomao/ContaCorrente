@@ -7,6 +7,7 @@ namespace Led.ContaCorrente.Domain.Enums.Validadores
     {
         public const string Criar = "incluir";
         public const string Deposito = "deposito";
-        public const string Transferir = "tranferir";
+        public const string Transfencia = "tranferir";
+        public const string Saque = "saque";
     }
 }
