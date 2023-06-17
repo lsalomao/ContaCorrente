@@ -1,8 +1,9 @@
 ﻿using FluentValidation.AspNetCore;
 using Led.ContaCorrente.Api.Controllers.Base;
 using Led.ContaCorrente.Domain.Abstractions.Services;
+using Led.ContaCorrente.Domain.Enums;
+using Led.ContaCorrente.Domain.Enums.Validadores;
 using Led.ContaCorrente.Domain.Requests;
-using Led.ContaCorrente.Domain.Responses.Base;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Led.ContaCorrente.Api.Controllers
@@ -11,69 +12,68 @@ namespace Led.ContaCorrente.Api.Controllers
     [Route("/v{version:apiVersion}/accounts")]
     public class AccountController : BaseController
     {
-        private readonly IAccountService _accountService;
+        private readonly IAccountService accountService;        
 
         public AccountController(IAccountService accountService)
         {
-            _accountService = accountService;
+            this.accountService = accountService;
         }
 
         [HttpPost]
-        public async Task<IActionResult> CreateAccount([FromBody] AccountRequest request)
+        public async Task<IActionResult> CreateAccount([FromBody, CustomizeValidator(RuleSet = ValidationRules.Criar)] AccountRequest request)
         {
-            var response = await _accountService.CreateAccount(request.Name, request.Limit);
-
+            await Task.CompletedTask;
+            var response = accountService.CreateAccount(request.Name, request.Limit);
             return response.PossuiErro ? HandleError(response) : Ok(response.Dados);
         }
 
         [HttpGet("{accountId}")]
         public IActionResult GetAccount(string accountId)
         {
-            var response = _accountService.GetAccountById(accountId);
-
+            var response = accountService.GetAccountById(accountId);
             return response.PossuiErro ? HandleError(response) : Ok(response.Dados);
         }
 
         [HttpPost("{accountId}/deposit")]
-        public async  Task<IActionResult> Deposit([FromRoute] string accountId, [FromBody] MovementRequest request)
+        public async Task<IActionResult> Deposit([FromRoute] string accountId, [FromBody] MovementRequest request)
         {
-            var response = await _accountService.Deposit(accountId, request.Amount);
+            var response = await accountService.Deposit(accountId, request.Amount);
             return response.PossuiErro ? HandleError(response) : Ok(response.Dados);
         }
 
         [HttpPost("{accountId}/withdraw")]
         public IActionResult Withdraw(string accountId, [FromBody] MovementRequest request)
         {
-            var movement = _accountService.Withdraw(accountId, request.Amount);
-            return Ok(movement);
+            var response = accountService.Withdraw(accountId, request.Amount);
+            return response.PossuiErro ? HandleError(response) : Ok(response.Dados);
         }
 
         [HttpPost("{sourceAccountId}/transfer/{targetAccountId}")]
-        public IActionResult Transfer(string sourceAccountId, string targetAccountId, [FromBody] MovementRequest request)
+        public async Task<IActionResult> Transfer(string sourceAccountId, string targetAccountId, [FromBody] MovementRequest request)
         {
-            var movement = _accountService.Transfer(sourceAccountId, targetAccountId, request.Amount);
-            return Ok(movement);
+            var response = await accountService.Transfer(sourceAccountId, targetAccountId, request.Amount);
+            return response.PossuiErro ? HandleError(response) : Ok(response.Dados);
         }
 
         [HttpGet("{accountId}/balance")]
         public IActionResult GetBalance(string accountId)
         {
-            var balance = _accountService.GetBalance(accountId);
-            return Ok(new { Balance = balance });
+            var response = accountService.GetBalance(accountId);
+            return response.PossuiErro ? HandleError(response) : Ok(response.Dados);
         }
 
         [HttpGet("{accountId}/statement")]
         public IActionResult GetAccountStatementByPeriod(string accountId, [FromQuery] StatementRequest request)
         {
-            var statement = _accountService.GetAccountStatementByPeriod(accountId, request.StartDate, request.EndDate);
-            return Ok(statement);
+            var response = accountService.GetAccountStatementByPeriod(accountId, request.StartDate, request.EndDate);
+            return response.PossuiErro ? HandleError(response) : Ok(response.Dados);
         }
 
         [HttpGet("{accountId}/statement/{type}")]
-        public IActionResult GetAccountStatementByType(string accountId, string type)
+        public IActionResult GetAccountStatementByType(string accountId, TipoMovimento type)
         {
-            var statement = _accountService.GetAccountStatementByType(accountId, type);
-            return Ok(statement);
+            var response = accountService.GetAccountStatementByType(accountId, type);
+            return response.PossuiErro ? HandleError(response) : Ok(response.Dados);
         }
     }
 }

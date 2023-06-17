@@ -18,6 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Led.ContaCorrente.DomainRepository\Led.ContaCorrente.DomainRepository.csproj" />
     <ProjectReference Include="..\Led.ContaCorrente.DomainService\Led.ContaCorrente.DomainService.csproj" />
     <ProjectReference Include="..\Led.ContaCorrente.Domain\Led.ContaCorrente.Domain.csproj" />
   </ItemGroup>

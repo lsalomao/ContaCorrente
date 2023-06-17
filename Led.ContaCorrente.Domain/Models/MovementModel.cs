@@ -1,4 +1,6 @@
-﻿namespace Led.ContaCorrente.Domain.Models
+﻿using Led.ContaCorrente.Domain.Enums;
+
+namespace Led.ContaCorrente.Domain.Models
 {
     public class MovementModel
     {
@@ -6,7 +8,7 @@
         public string AccountId { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public decimal Amount { get; set; }
-        public string Type { get; set; } = string.Empty;
+        public TipoMovimento Type { get; set; }
         public DateTime Date { get; set; } = DateTime.Now;
     }
 }

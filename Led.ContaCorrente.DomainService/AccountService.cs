@@ -1,28 +1,24 @@
 ﻿using FluentValidation;
+using Led.ContaCorrente.Domain.Abstractions.Repository;
 using Led.ContaCorrente.Domain.Abstractions.Services;
 using Led.ContaCorrente.Domain.Enums;
 using Led.ContaCorrente.Domain.Models;
 using Led.ContaCorrente.Domain.Responses.Base;
-using Led.ContaCorrente.DomainService.Validadores;
-using Microsoft.Extensions.Caching.Memory;
-using System.Security.Principal;
 
 namespace Led.ContaCorrente.DomainService
 {
     public class AccountService : IAccountService
     {
-        private readonly IMemoryCache cache;
-        private readonly AccountValidator accountValidator;
-        private readonly MovementValidator movementValidator;
+        private readonly IAccountRepository accountRepository;
+        private readonly IMovementRepository movementRepository;
 
-        public AccountService(IMemoryCache cache, AccountValidator accountValidator, MovementValidator movementValidator)
+        public AccountService(IAccountRepository accountRepository, IMovementRepository movementRepository)
         {
-            this.cache = cache;
-            this.accountValidator = accountValidator;
-            this.movementValidator = movementValidator;
+            this.accountRepository = accountRepository;
+            this.movementRepository = movementRepository;
         }
 
-        public async Task<Response<AccountModel>> CreateAccount(string name, decimal limit)
+        public Response<AccountModel> CreateAccount(string name, decimal limit)
         {
             var account = new AccountModel
             {
@@ -31,16 +27,9 @@ namespace Led.ContaCorrente.DomainService
                 Limit = limit
             };
 
-            var validationResult = await accountValidator.ValidateAsync(account);
-            if (!validationResult.IsValid)
-            {
-                return new Response<AccountModel>(MotivoErro.BadRequest, validationResult.Errors.Select(p => p.ErrorMessage));
-            }
+            accountRepository.AddAccount(account);
 
-            // Armazenar a conta no cache
-            cache.Set(account.Id, account);
-
-            return GetResponseAccount(account.Id);
+            return new Response<AccountModel>(account);
         }
 
         public Response<AccountModel> GetAccountById(string accountId)
@@ -50,105 +39,90 @@ namespace Led.ContaCorrente.DomainService
 
         public async Task<Response<MovementModel>> Deposit(string accountId, decimal amount)
         {
-            var account = GetAccount(accountId);
-            if (account == null)
-            {
-                return new Response<MovementModel>(MotivoErro.NotFound, "Conta corrente informada não encontrada.");
-            }
+            await Task.CompletedTask;
+
+            var accountResponse = GetResponseAccount(accountId);
+            if (accountResponse.PossuiErro) return new Response<MovementModel>(MotivoErro.NotFound, "Conta corrente informada não encontrada.");
+
+            var account = accountResponse.Dados!;
 
             var movement = new MovementModel
             {
                 AccountId = accountId,
                 Description = $"Depósito - {accountId}",
                 Amount = amount,
-                Type = "CREDIT"
+                Type = TipoMovimento.Credito
             };
-
-            var validationResult = await movementValidator.ValidateAsync(movement);
-            if (!validationResult.IsValid)
-            {
-                return new Response<MovementModel>(MotivoErro.BadRequest, validationResult.Errors.Select(p => p.ErrorMessage));
-            }
 
             account.Balance += amount;
             account.Movements.Add(movement.Id);
-            //Atualiza o saldo
-            cache.Set(account.Id, account);
 
-            // Armazenar o movimento
-            cache.Set(movement.Id, movement);
+            accountRepository.UpdateAccount(account);
+            movementRepository.AddMovement(movement);
 
             return new Response<MovementModel>(movement);
         }
 
-        public IEnumerable<MovementModel> GetAccountStatementByPeriod(string accountId, DateTime startDate, DateTime endDate)
+        public Response<IEnumerable<MovementModel>> GetAccountStatementByPeriod(string accountId, DateTime startDate, DateTime endDate)
         {
-            var account = GetAccount(accountId) ?? throw new Exception("A conta especificada não existe.");
+            var accountResponse = GetResponseAccount(accountId);
+            if (accountResponse.PossuiErro) return new Response<IEnumerable<MovementModel>>(MotivoErro.NotFound, "A conta especificada não existe.");
 
-            List<MovementModel> result = new();
-            foreach (var movementId in account.Movements)
-            {
-                var movement = GetMovement(movementId);
-                if (movement == null) continue;
+            var account = accountResponse.Dados!;
 
-                result.Add(movement);
-            }
+            var result = movementRepository.GetMovementsByAccount(account);
 
-            return result;
+            return result.Any() ?
+                            new Response<IEnumerable<MovementModel>>(result.Where(p => p.Date > startDate && p.Date < endDate))
+                            : new Response<IEnumerable<MovementModel>>(MotivoErro.NotFound);
         }
 
-        public IEnumerable<MovementModel> GetAccountStatementByType(string accountId, string type)
+        public Response<IEnumerable<MovementModel>> GetAccountStatementByType(string accountId, TipoMovimento type)
         {
-            var account = GetAccount(accountId) ?? throw new Exception("A conta especificada não existe.");
+            var accountResponse = GetResponseAccount(accountId);
+            if (accountResponse.PossuiErro) return new Response<IEnumerable<MovementModel>>(MotivoErro.NotFound, "A conta especificada não existe.");
 
-            List<MovementModel> result = new();
-            foreach (var movementId in account.Movements)
-            {
-                var movement = GetMovement(movementId);
-                if (movement == null) continue;
+            var account = accountResponse.Dados!;
 
-                if (movement.Type.Equals(type) is false) continue;
+            var result = movementRepository.GetMovementsByAccount(account);
 
-                result.Add(movement);
-            }
-
-            return result;
+            return result.Any() ?
+                            new Response<IEnumerable<MovementModel>>(result.Where(p => p.Type.Equals(type)))
+                            : new Response<IEnumerable<MovementModel>>(MotivoErro.NotFound);
         }
 
-        public decimal GetBalance(string accountId)
+        public Response<decimal> GetBalance(string accountId)
         {
-            var account = GetAccount(accountId);
-            return account != null ? account.Balance : throw new Exception("A conta especificada não existe.");
+            var accountResponse = GetResponseAccount(accountId);
+            if (accountResponse.PossuiErro) return new Response<decimal>(MotivoErro.NotFound, "A conta especificada não existe.");
+
+            var account = accountResponse.Dados!;
+
+            return new Response<decimal>(account.Balance);
         }
 
-        public MovementModel Transfer(string sourceAccountId, string destinationAccountId, decimal amount)
+        public async Task<Response<MovementModel>> Transfer(string sourceAccountId, string destinationAccountId, decimal amount)
         {
-            //var sourceValidationResult = _movementValidator.Validate(sourceMovement);
-            //if (!sourceValidationResult.IsValid)
-            //{
-            //    throw new ValidationException(sourceValidationResult.Errors);
-            //}
+            await Task.CompletedTask;
 
-            //var targetValidationResult = _movementValidator.Validate(targetMovement);
-            //if (!targetValidationResult.IsValid)
-            //{
-            //    throw new ValidationException(targetValidationResult.Errors);
-            //}
+            var targetAccountResponse = GetResponseAccount(destinationAccountId);
+            if (targetAccountResponse.PossuiErro) return new Response<MovementModel>(MotivoErro.NotFound, "Conta corrente de destino informada não encontrada.");
 
-            var targetAccount = GetAccount(destinationAccountId) ?? throw new Exception("A conta de destino não existe.");
-            var sourceAccount = GetAccount(sourceAccountId) ?? throw new Exception("A conta de origem não existe.");
+            var sourceAccountResponse = GetResponseAccount(sourceAccountId);
+            if (sourceAccountResponse == null) return new Response<MovementModel>(MotivoErro.NotFound, "Conta corrente informada não encontrada.");
+
+            var targetAccount = targetAccountResponse.Dados!;
+            var sourceAccount = sourceAccountResponse.Dados!;
 
             if (sourceAccount.Balance < amount)
-            {
-                throw new Exception("Saldo insuficiente para realizar a transferência.");
-            }
+                return new Response<MovementModel>(MotivoErro.BadRequest, "Saldo insuficiente para realizar a transferência.");
 
             var sourceMovement = new MovementModel
             {
                 AccountId = sourceAccountId,
                 Description = $"Transferência para {destinationAccountId} - {targetAccount.Name}",
                 Amount = amount,
-                Type = "DEBIT"
+                Type = TipoMovimento.Debito
             };
 
             var targetMovement = new MovementModel
@@ -156,7 +130,7 @@ namespace Led.ContaCorrente.DomainService
                 AccountId = destinationAccountId,
                 Description = $"Transferência de {sourceAccountId} - {sourceAccount.Name} ",
                 Amount = amount,
-                Type = "CREDIT"
+                Type = TipoMovimento.Credito
             };
 
             sourceAccount.Balance -= amount;
@@ -165,58 +139,49 @@ namespace Led.ContaCorrente.DomainService
             targetAccount.Balance += amount;
             targetAccount.Movements.Add(targetMovement.Id);
 
-            // Armazenar o conta
-            cache.Set(sourceAccount.Id, sourceAccount);
-            cache.Set(targetAccount.Id, targetAccount);
 
-            // Armazenar o movimento
-            cache.Set(sourceMovement.Id, sourceMovement);
-            cache.Set(targetMovement.Id, targetMovement);
+            accountRepository.UpdateAccount(sourceAccount);
+            accountRepository.UpdateAccount(targetAccount);
 
-            return sourceMovement;
+            movementRepository.AddMovement(sourceMovement);
+            movementRepository.AddMovement(targetMovement);
+
+            return new Response<MovementModel>(sourceMovement);
         }
 
-        public MovementModel Withdraw(string accountId, decimal amount)
+        public Response<MovementModel> Withdraw(string accountId, decimal amount)
         {
-            var account = GetAccount(accountId) ?? throw new Exception("A conta especificada não existe.");
+            var accountResponse = GetResponseAccount(accountId);
+            if (accountResponse.PossuiErro) return new Response<MovementModel>(MotivoErro.NotFound, "Conta corrente informada não encontrada.");
 
-            if (amount > account.Balance) throw new Exception("Saldo Insuficiente.");
+            var account = accountResponse.Dados!;
+
+            if (amount > account.Balance) return new Response<MovementModel>(MotivoErro.NotFound, "Saldo Insuficiente.");
 
             var movement = new MovementModel
             {
                 AccountId = accountId,
                 Description = $"Saque - {accountId}",
                 Amount = amount,
-                Type = "DEBIT"
+                Type = TipoMovimento.Debito
             };
 
             account.Balance -= amount;
             account.Movements.Add(movement.Id);
 
-            cache.Set(accountId, account);
-            // Armazenar o movimento
-            cache.Set(movement.Id, movement);
+            accountRepository.UpdateAccount(account);
+            movementRepository.AddMovement(movement);
 
-            return movement;
-        }
-
-        private AccountModel? GetAccount(string accountId)
-        {
-            return cache.Get<AccountModel>(accountId);
+            return new Response<MovementModel>(movement);
         }
 
         private Response<AccountModel> GetResponseAccount(string accountId)
         {
-            var account = cache.Get<AccountModel>(accountId);
+            var account = accountRepository.GetAccountById(accountId);
 
-            if (account == null) return new Response<AccountModel>(MotivoErro.NotFound);
+            if (account == null) return new Response<AccountModel>(MotivoErro.NotFound, "A conta especificada não existe.");
 
             return new Response<AccountModel>(account);
-        }
-
-        private MovementModel? GetMovement(string movementId)
-        {
-            return cache.Get<MovementModel>(movementId);
         }
     }
 }

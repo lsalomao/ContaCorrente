@@ -1,4 +1,5 @@
 ﻿using FluentValidation;
+using Led.ContaCorrente.Domain.Enums.Validadores;
 using Led.ContaCorrente.Domain.Models;
 
 namespace Led.ContaCorrente.DomainService.Validadores
@@ -7,7 +8,12 @@ namespace Led.ContaCorrente.DomainService.Validadores
     {
         public MovementValidator()
         {
-            RuleFor(x => x.Amount).GreaterThanOrEqualTo(10).WithMessage("Valor tem que ser superior à 10.");
+            RuleSet(ValidationRules.Deposito, () =>
+            {
+                RuleFor(x => x.Amount).GreaterThan(0).WithMessage("Valor tem que ser superior à 10.");
+            });
         }
     }
 }
+
+

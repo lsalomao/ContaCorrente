@@ -1,14 +1,18 @@
 ﻿using FluentValidation;
-using Led.ContaCorrente.Domain.Models;
+using Led.ContaCorrente.Domain.Enums.Validadores;
+using Led.ContaCorrente.Domain.Requests;
 
 namespace Led.ContaCorrente.DomainService.Validadores
 {
-    public class AccountValidator : AbstractValidator<AccountModel>
+    public class AccountValidator : AbstractValidator<AccountRequest>
     {
         public AccountValidator()
         {
-            RuleFor(x => x.Name).NotEmpty().WithMessage("Nome não informado.");
-            RuleFor(x => x.Limit).GreaterThanOrEqualTo(1000).WithMessage("Valor tem que ser superior à 1000.");
+            RuleSet(ValidationRules.Criar, () =>
+            {
+                RuleFor(account => account.Name).NotEmpty().WithMessage("O nome da conta é obrigatório.");
+                RuleFor(account => account.Limit).GreaterThanOrEqualTo(50).WithMessage("O limite da conta deve ser maior ou igual a 50.");
+            });
         }
     }
 }
