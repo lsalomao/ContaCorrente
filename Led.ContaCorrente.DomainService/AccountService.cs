@@ -41,10 +41,9 @@ namespace Led.ContaCorrente.DomainService
         {
             await Task.CompletedTask;
 
-            var accountResponse = GetResponseAccount(accountId);
-            if (accountResponse.PossuiErro) return new Response<MovementModel>(MotivoErro.NotFound, "Conta corrente informada não encontrada.");
-
-            var account = accountResponse.Dados!;
+            var account = accountRepository.GetAccountById(accountId);
+            
+            if (account == null) return new Response<MovementModel>(MotivoErro.NotFound, "Conta corrente informada não encontrada.");
 
             var movement = new MovementModel
             {
