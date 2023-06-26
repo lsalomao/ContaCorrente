@@ -19,9 +19,8 @@ A aplicação oferece as seguintes funcionalidades:
 A aplicação segue o padrão de arquitetura DDD (Domain-Driven Design), que organiza o código em diferentes camadas com responsabilidades específicas. As principais camadas são:
 
 - **Domain**: Contém as entidades de domínio, como a entidade `Account` (conta corrente) e `Movement` (movimentação), que representam os conceitos centrais da aplicação.
-- **Application**: Contém os serviços de aplicação que implementam as regras de negócio e orquestram as operações da aplicação. Aqui encontramos a interface `IAccountService`, que define os métodos disponíveis para manipular as contas correntes.
-- **Infrastructure**: Contém as implementações concretas das interfaces definidas nas camadas superiores. Aqui encontramos os repositórios, como `AccountRepository` e `MovementRepository`, que lidam com o armazenamento de dados em cache usando o MemoryCache.
-- **Presentation**: Contém a camada de apresentação da aplicação, que é responsável por expor os serviços através de uma API RESTful. Aqui encontramos a classe `AccountController`, que define os endpoints para cada operação disponível.
+- **Domain.Service**: Contém os serviços de aplicação que implementam as regras de negócio e orquestram as operações da aplicação. Aqui encontramos a interface `IAccountService`, que define os métodos disponíveis para manipular as contas correntes.
+- **Domain.Repository**: Contém as implementações concretas das interfaces definidas nas camadas superiores. Aqui encontramos os repositórios, como `AccountRepository` e `MovementRepository`, que lidam com o armazenamento de dados em cache usando o MemoryCache.
 
 ## Configuração
 

@@ -13,7 +13,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "05 - Tests", "05 - Tests", 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Led.ContaCorrente.Test", "Led.ContaCorrente.Test\Led.ContaCorrente.Test.csproj", "{A2875FE2-2E9D-46F6-9676-3E82B2462ADE}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Led.ContaCorrente.DomainRepository", "Led.ContaCorrente.DomainRepository\Led.ContaCorrente.DomainRepository.csproj", "{B30BBB9F-1B55-4528-8B6A-0488F13574C2}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Led.ContaCorrente.DomainRepository", "Led.ContaCorrente.DomainRepository\Led.ContaCorrente.DomainRepository.csproj", "{B30BBB9F-1B55-4528-8B6A-0488F13574C2}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "00-SolutionItens", "00-SolutionItens", "{092E6DBF-D6E5-4828-A89B-5F614F0478FE}"
+	ProjectSection(SolutionItems) = preProject
+		README.md = README.md
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
