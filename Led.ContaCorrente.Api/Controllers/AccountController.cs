@@ -34,24 +34,24 @@ namespace Led.ContaCorrente.Api.Controllers
             return response.PossuiErro ? HandleError(response) : Ok(response.Dados);
         }
 
-        [HttpPost("{accountId}/deposit")]
-        public async Task<IActionResult> Deposit([FromRoute] string accountId, [FromBody, CustomizeValidator(RuleSet = ValidationRules.Deposito)] MovementRequest request)
+        [HttpPost("deposit")]
+        public async Task<IActionResult> Deposit([FromBody, CustomizeValidator(RuleSet = ValidationRules.Deposito)] MovementRequest request)
         {
-            var response = await accountService.Deposit(accountId, request.Amount);
+            var response = await accountService.Deposit(request);
             return response.PossuiErro ? HandleError(response) : Ok(response.Dados);
         }
 
-        [HttpPost("{accountId}/withdraw")]
-        public IActionResult Withdraw(string accountId, [FromBody, CustomizeValidator(RuleSet = ValidationRules.Saque)] MovementRequest request)
+        [HttpPost("withdraw")]
+        public IActionResult Withdraw([FromBody, CustomizeValidator(RuleSet = ValidationRules.Saque)] MovementRequest request)
         {
-            var response = accountService.Withdraw(accountId, request.Amount);
+            var response = accountService.Withdraw(request);
             return response.PossuiErro ? HandleError(response) : Ok(response.Dados);
         }
 
-        [HttpPost("{sourceAccountId}/transfer/{targetAccountId}")]
-        public async Task<IActionResult> Transfer(string sourceAccountId, string targetAccountId, [FromBody, CustomizeValidator(RuleSet = ValidationRules.Transfencia)] MovementRequest request)
+        [HttpPost("transfer")]
+        public async Task<IActionResult> Transfer([FromBody, CustomizeValidator(RuleSet = ValidationRules.Transfencia)] TransferRequest request)
         {
-            var response = await accountService.Transfer(sourceAccountId, targetAccountId, request.Amount);
+            var response = await accountService.Transfer(request);
             return response.PossuiErro ? HandleError(response) : Ok(response.Dados);
         }
 
@@ -63,14 +63,14 @@ namespace Led.ContaCorrente.Api.Controllers
         }
 
         [HttpGet("{accountId}/statement")]
-        public IActionResult GetAccountStatementByPeriod(string accountId, [FromQuery] StatementRequest request)
+        public IActionResult GetAccountStatementByPeriod([FromRoute] string accountId, [FromQuery] StatementRequest request)
         {
             var response = accountService.GetAccountStatementByPeriod(accountId, request.StartDate, request.EndDate);
             return response.PossuiErro ? HandleError(response) : Ok(response.Dados);
         }
 
         [HttpGet("{accountId}/statement/{type}")]
-        public IActionResult GetAccountStatementByType(string accountId, TipoMovimento type)
+        public IActionResult GetAccountStatementByType([FromRoute] string accountId, TipoMovimento type)
         {
             var response = accountService.GetAccountStatementByType(accountId, type);
             return response.PossuiErro ? HandleError(response) : Ok(response.Dados);

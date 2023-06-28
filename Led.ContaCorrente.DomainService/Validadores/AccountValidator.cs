@@ -13,6 +13,7 @@ namespace Led.ContaCorrente.DomainService.Validadores
                 RuleFor(account => account.Name).NotEmpty().WithMessage("O nome da conta é obrigatório.");
                 RuleFor(account => account.Limit).GreaterThanOrEqualTo(50).WithMessage("O limite da conta deve ser maior ou igual a 50.");
             });
+
         }
     }
 }

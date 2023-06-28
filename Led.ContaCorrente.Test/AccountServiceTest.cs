@@ -2,9 +2,9 @@ using Led.ContaCorrente.Domain.Abstractions.Repository;
 using Led.ContaCorrente.Domain.Abstractions.Services;
 using Led.ContaCorrente.Domain.Enums;
 using Led.ContaCorrente.Domain.Models;
+using Led.ContaCorrente.Domain.Requests;
 using Led.ContaCorrente.Domain.Responses.Base;
 using Led.ContaCorrente.DomainService;
-using Microsoft.Extensions.Caching.Memory;
 
 namespace Led.ContaCorrente.Test
 {
@@ -27,6 +27,11 @@ namespace Led.ContaCorrente.Test
         static MovementModel GetMovement(string accountId, decimal amount, TipoMovimento type)
         {
             return new MovementModel { Id = "1", AccountId = accountId, Amount = amount, Type = type };
+        }
+
+        static MovementRequest GetMovementRequest(string accountId, decimal amount)
+        {
+            return new MovementRequest() { AccountId = accountId, Amount = amount };
         }
 
         static List<MovementModel> GetMovements(string accountId)
@@ -81,11 +86,12 @@ namespace Led.ContaCorrente.Test
             string accountId = "1";
             var account = GetAccount(accountId);
             decimal amount = 100m;
+            var movementRequest = GetMovementRequest(accountId, amount);
             var movementModel = GetMovement(accountId, amount, TipoMovimento.Credito);
 
             _accountRepositoryMock.Setup(p => p.GetAccountById(accountId)).Returns(account);
             // Act
-            var result = await _accountService.Deposit(accountId, amount);
+            var result = await _accountService.Deposit(movementRequest);
 
             // Assert
             Assert.IsType<Response<MovementModel>>(result);
@@ -101,11 +107,12 @@ namespace Led.ContaCorrente.Test
             string accountId = "1";
             var account = GetAccount(accountId);
             decimal amount = 100m;
+            var movementRequest = GetMovementRequest(accountId, amount);
 
             _accountRepositoryMock.Setup(p => p.GetAccountById(accountId)).Returns(account);
 
             // Act
-            var result = _accountService.Withdraw(accountId, amount);
+            var result = _accountService.Withdraw(movementRequest);
 
             // Assert
             Assert.IsType<Response<MovementModel>>(result);
@@ -117,18 +124,19 @@ namespace Led.ContaCorrente.Test
         {
             // Arrange
             string sourceAccountId = "1";
-
             var sourceAccount = GetAccount(sourceAccountId);
-            string destinationAccountId = "2";
 
+            string destinationAccountId = "2";
             var destinationAccount = GetAccount(destinationAccountId);
             decimal amount = 100m;
+
+            var transferRequest = new TransferRequest() { SourceAccountId = sourceAccountId, TargetAccountId = destinationAccountId, Amount = amount };
 
             _accountRepositoryMock.Setup(p => p.GetAccountById(sourceAccountId)).Returns(sourceAccount);
             _accountRepositoryMock.Setup(p => p.GetAccountById(destinationAccountId)).Returns(destinationAccount);
 
             // Act
-            var result = await _accountService.Transfer(sourceAccountId, destinationAccountId, amount);
+            var result = await _accountService.Transfer(transferRequest);
 
             // Assert
             Assert.IsType<Response<MovementModel>>(result);

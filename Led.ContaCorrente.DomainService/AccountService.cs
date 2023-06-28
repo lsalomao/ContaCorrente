@@ -3,7 +3,9 @@ using Led.ContaCorrente.Domain.Abstractions.Repository;
 using Led.ContaCorrente.Domain.Abstractions.Services;
 using Led.ContaCorrente.Domain.Enums;
 using Led.ContaCorrente.Domain.Models;
+using Led.ContaCorrente.Domain.Requests;
 using Led.ContaCorrente.Domain.Responses.Base;
+using MediatR;
 
 namespace Led.ContaCorrente.DomainService
 {
@@ -37,23 +39,22 @@ namespace Led.ContaCorrente.DomainService
             return GetResponseAccount(accountId);
         }
 
-        public async Task<Response<MovementModel>> Deposit(string accountId, decimal amount)
+        public async Task<Response<MovementModel>> Deposit(MovementRequest request)
         {
             await Task.CompletedTask;
 
-            var account = accountRepository.GetAccountById(accountId);
-            
-            if (account == null) return new Response<MovementModel>(MotivoErro.NotFound, "Conta corrente informada não encontrada.");
+            var account = accountRepository.GetAccountById(request.AccountId);
+            if (account == null) return new Response<MovementModel>(MotivoErro.NotFound, "A conta especificada não existe.");
 
             var movement = new MovementModel
             {
-                AccountId = accountId,
-                Description = $"Depósito - {accountId}",
-                Amount = amount,
+                AccountId = request.AccountId,
+                Description = $"Depósito - {request.AccountId}",
+                Amount = request.Amount,
                 Type = TipoMovimento.Credito
             };
 
-            account.Balance += amount;
+            account.Balance += request.Amount;
             account.Movements.Add(movement.Id);
 
             accountRepository.UpdateAccount(account);
@@ -64,10 +65,8 @@ namespace Led.ContaCorrente.DomainService
 
         public Response<IEnumerable<MovementModel>> GetAccountStatementByPeriod(string accountId, DateTime startDate, DateTime endDate)
         {
-            var accountResponse = GetResponseAccount(accountId);
-            if (accountResponse.PossuiErro) return new Response<IEnumerable<MovementModel>>(MotivoErro.NotFound, "A conta especificada não existe.");
-
-            var account = accountResponse.Dados!;
+            var account = accountRepository.GetAccountById(accountId);
+            if (account == null) return new Response<IEnumerable<MovementModel>>(MotivoErro.NotFound, "A conta especificada não existe.");
 
             var result = movementRepository.GetMovementsByAccount(account);
 
@@ -100,44 +99,41 @@ namespace Led.ContaCorrente.DomainService
             return new Response<decimal>(account.Balance);
         }
 
-        public async Task<Response<MovementModel>> Transfer(string sourceAccountId, string destinationAccountId, decimal amount)
+        public async Task<Response<MovementModel>> Transfer(TransferRequest request)
         {
             await Task.CompletedTask;
 
-            var targetAccountResponse = GetResponseAccount(destinationAccountId);
-            if (targetAccountResponse.PossuiErro) return new Response<MovementModel>(MotivoErro.NotFound, "Conta corrente de destino informada não encontrada.");
+            var targetAccount = accountRepository.GetAccountById(request.TargetAccountId);
+            if (targetAccount == null) return new Response<MovementModel>(MotivoErro.NotFound, "Conta corrente de destino informada não encontrada.");
 
-            var sourceAccountResponse = GetResponseAccount(sourceAccountId);
-            if (sourceAccountResponse == null) return new Response<MovementModel>(MotivoErro.NotFound, "Conta corrente informada não encontrada.");
+            var sourceAccount = accountRepository.GetAccountById(request.SourceAccountId);
+            if (sourceAccount == null) return new Response<MovementModel>(MotivoErro.NotFound, "Conta corrente informada não encontrada.");
 
-            var targetAccount = targetAccountResponse.Dados!;
-            var sourceAccount = sourceAccountResponse.Dados!;
 
-            if (sourceAccount.Balance < amount)
+            if (sourceAccount.Balance < request.Amount)
                 return new Response<MovementModel>(MotivoErro.BadRequest, "Saldo insuficiente para realizar a transferência.");
 
             var sourceMovement = new MovementModel
             {
-                AccountId = sourceAccountId,
-                Description = $"Transferência para {destinationAccountId} - {targetAccount.Name}",
-                Amount = amount,
+                AccountId = request.SourceAccountId,
+                Description = $"Transferência para {request.TargetAccountId} - {targetAccount.Name}",
+                Amount = request.Amount,
                 Type = TipoMovimento.Debito
             };
 
             var targetMovement = new MovementModel
             {
-                AccountId = destinationAccountId,
-                Description = $"Transferência de {sourceAccountId} - {sourceAccount.Name} ",
-                Amount = amount,
+                AccountId = request.TargetAccountId,
+                Description = $"Transferência de {request.SourceAccountId} - {sourceAccount.Name} ",
+                Amount = request.Amount,
                 Type = TipoMovimento.Credito
             };
 
-            sourceAccount.Balance -= amount;
+            sourceAccount.Balance -= request.Amount;
             sourceAccount.Movements.Add(sourceMovement.Id);
 
-            targetAccount.Balance += amount;
+            targetAccount.Balance += request.Amount;
             targetAccount.Movements.Add(targetMovement.Id);
-
 
             accountRepository.UpdateAccount(sourceAccount);
             accountRepository.UpdateAccount(targetAccount);
@@ -148,24 +144,22 @@ namespace Led.ContaCorrente.DomainService
             return new Response<MovementModel>(sourceMovement);
         }
 
-        public Response<MovementModel> Withdraw(string accountId, decimal amount)
+        public Response<MovementModel> Withdraw(MovementRequest request)
         {
-            var accountResponse = GetResponseAccount(accountId);
-            if (accountResponse.PossuiErro) return new Response<MovementModel>(MotivoErro.NotFound, "Conta corrente informada não encontrada.");
+            var account = accountRepository.GetAccountById(request.AccountId);
+            if (account == null) return new Response<MovementModel>(MotivoErro.NotFound, "A conta especificada não existe.");
 
-            var account = accountResponse.Dados!;
-
-            if (amount > account.Balance) return new Response<MovementModel>(MotivoErro.NotFound, "Saldo Insuficiente.");
+            if (request.Amount > account.Balance) return new Response<MovementModel>(MotivoErro.NotFound, "Saldo Insuficiente.");
 
             var movement = new MovementModel
             {
-                AccountId = accountId,
-                Description = $"Saque - {accountId}",
-                Amount = amount,
+                AccountId = request.AccountId,
+                Description = $"Saque - {request.AccountId}",
+                Amount = request.Amount,
                 Type = TipoMovimento.Debito
             };
 
-            account.Balance -= amount;
+            account.Balance -= request.Amount;
             account.Movements.Add(movement.Id);
 
             accountRepository.UpdateAccount(account);
